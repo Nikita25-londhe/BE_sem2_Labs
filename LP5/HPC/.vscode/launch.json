@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/nikitalondhe/Documents/BE_sem2_Labs/LP5/HPC",
+      "program": "/Users/nikitalondhe/Documents/BE_sem2_Labs/LP5/HPC/build/Debug/outDebug"
+    }
+  ]
+}
