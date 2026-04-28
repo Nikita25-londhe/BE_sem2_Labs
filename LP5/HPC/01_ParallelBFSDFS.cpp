@@ -1,113 +1,117 @@
-#include <iostream>
-#include <vector>
-#include <queue>
-#include <omp.h>
+#include<iostream>
+#include<vector>
+#include<queue>
+#include<omp.h>
 using namespace std;
-
-class Graph {
+class Graph
+{
     int V;
-    vector<int>* adj;
-
-public:
-    // Constructor
-    Graph(int V) {
-        this->V = V;
+    vector<int>*adj;
+    public:
+    Graph(int V)
+    {
+        this->V=V;
         adj = new vector<int>[V];
     }
-
-    // Add edge (undirected)
-    void addEdge(int v, int w) {
-        adj[v].push_back(w);
-        adj[w].push_back(v);
+    void addEdge(int u,int v)
+    {
+        adj[u].push_back(v);
+        adj[v].push_back(u);
     }
-
-    // -------- Parallel BFS --------
-    void BFSParallel(int start) {
-        vector<bool> visited(V, false);
-        queue<int> q;
-
-        visited[start] = true;
+    void printGraph()
+    {
+        for(int i = 0; i < V; i++)
+        {
+            for(auto v : adj[i])
+            {
+                cout << v << " ";
+            }
+            cout << endl;
+        }
+    }
+    void BFS_Parallel(int start)
+    {
+        vector<int>visited(V,0);
+        queue<int>q;
         q.push(start);
-
-        while (!q.empty()) {
-            int node;
-
-            // Safe queue access
+        visited[start]=1;
+        while(true)
+        {
+            int node,flag=0;
             #pragma omp critical
             {
-                if (!q.empty()) {
-                    node = q.front();
+                if(!q.empty())
+                {
+                    node=q.front();
                     q.pop();
-                    cout << "Visited (BFS): " << node 
-                         << " by thread " << omp_get_thread_num() << endl;
+                    cout<<"\n"<<node<<" is visited by "<<omp_get_thread_num();
+                }
+                else
+                {
+                   flag=1;
                 }
             }
-
-            // Parallel processing of neighbors
-            #pragma omp parallel for
-            for (int i = 0; i < adj[node].size(); i++) {
-                int neighbor = adj[node][i];
-
-                if (!visited[neighbor]) {
-                    #pragma omp critical
+            if(flag)
+            {
+                break;
+            }
+            int neighbour;
+            #pragma omp parallel for 
+            for(int i=0;i<adj[node].size();i++)
+            {
+                neighbour=adj[node][i];
+                #pragma omp critical
+                {
+                    if(!visited[neighbour])
                     {
-                        if (!visited[neighbor]) {
-                            visited[neighbor] = true;
-                            q.push(neighbor);
-                        }
+                        q.push(neighbour);
+                        visited[neighbour]=1;
                     }
                 }
             }
         }
     }
-
-    // -------- Parallel DFS Utility --------
-    void parallelDFSUtil(int node, vector<bool>& visited) {
-
-        // Check outside critical
-        if (visited[node]) return;
-
+    void DFSUtil(int v,vector<int>&visited)
+    {
+        if(visited[v])
+        {
+            return;
+        }
         #pragma omp critical
         {
-            if (!visited[node]) {
-                visited[node] = true;
-                cout << "Visited (DFS): " << node 
-                     << " by thread " << omp_get_thread_num() << endl;
-            }
+            cout<<"\n"<<v<<" is visited by "<<omp_get_thread_num();
+             visited[v]=1;
         }
-
-        // Parallel exploration
-        #pragma omp parallel for
-        for (int i = 0; i < adj[node].size(); i++) {
-            int neighbor = adj[node][i];
-
-            if (!visited[neighbor]) {
-                parallelDFSUtil(neighbor, visited);
+        int neighbour;
+        #pragma omp parallel for 
+        for(int i=0;i<adj[v].size();i++)
+        {
+            neighbour=adj[v][i];
+            if(!visited[neighbour])
+            {
+                DFSUtil(neighbour,visited);
             }
         }
     }
-
-    // -------- Parallel DFS --------
-    void DFSParallel(int start) {
-        vector<bool> visited(V, false);
-        parallelDFSUtil(start, visited);
+    void DFS_Parallel(int start)
+    {
+        vector<int>visited(V,0);
+        DFSUtil(start,visited);
     }
 };
-
-// -------- Main --------
-int main() {
-    Graph g(6);
-
-    g.addEdge(0, 1);
-    g.addEdge(0, 2);
-    g.addEdge(1, 3);
-    g.addEdge(1, 4);
-    g.addEdge(2, 5);
-
-    cout << "Parallel BFS starting from vertex 0:\n";
-    g.BFSParallel(0);
-
-    cout << "\nParallel DFS starting from vertex 0:\n";
-    g.DFSParallel(0);
+int main()
+{
+    Graph g(5);
+    g.addEdge(0,1);
+    g.addEdge(0,2);
+    g.addEdge(1,3);
+    g.addEdge(2,4);
+    g.addEdge(3,4);
+     g.addEdge(1,2);
+    g.printGraph();
+    cout<<"\nBFS Parallel:";
+    g.BFS_Parallel(0);
+    cout<<"\nDFS Parallel : ";
+    g.DFS_Parallel(0);
     return 0;
 }
