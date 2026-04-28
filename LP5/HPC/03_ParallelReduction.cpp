@@ -9,75 +9,84 @@
 #include <vector>
 #include <omp.h>
 using namespace std;
-
-// -------- Sequential --------
-int minval_sequential(const vector<int> &arr) {
-    int minval = arr[0];
-    for (int val : arr)
-        if (val < minval)
-            minval = val;
-    return minval;
+int minval_sequential(vector<int>arr)
+{
+    int min=arr[0];
+    for(int i=0;i<arr.size();i++)
+    {
+        if(arr[i]<min)
+        {
+            min=arr[i];
+        }
+    }
+    return min;
 }
-
-int maxval_sequential(const vector<int> &arr) {
-    int maxval = arr[0];
-    for (int val : arr)
-        if (val > maxval)
-            maxval = val;
-    return maxval;
+int maxval_sequential(vector<int>arr)
+{
+    int max=arr[0];
+    for(int i=0;i<arr.size();i++)
+    {
+        if(arr[i]>max)
+        {
+            max=arr[i];
+        }
+    }
+    return max;
 }
-
-int sum_sequential(const vector<int> &arr) {
-    int sum = 0;
-    for (int val : arr)
-        sum += val;
+int sum_sequential(vector<int>arr)
+{
+    int sum=0;
+    for(int i=0;i<arr.size();i++)
+    {
+        sum+=arr[i];
+    }
     return sum;
 }
-
-double average_sequential(const vector<int> &arr) {
-    return (double)sum_sequential(arr) / arr.size();
+double average_sequential(vector<int>arr)
+{
+    return (double)sum_sequential(arr)/arr.size();
 }
-
 // -------- Parallel (OpenMP Reduction) --------
-int minval_parallel(const vector<int> &arr) {
+int minval_parallel(vector<int> &arr) {
     int minval = arr[0];
 
     #pragma omp parallel for reduction(min : minval)
     for (int i = 0; i < arr.size(); i++)
-        if (arr[i] < minval)
-            minval = arr[i];
-
+    {
+        minval = arr[i];
+    }
     return minval;
 }
 
-int maxval_parallel(const vector<int> &arr) {
+int maxval_parallel(vector<int> &arr) {
     int maxval = arr[0];
 
     #pragma omp parallel for reduction(max : maxval)
     for (int i = 0; i < arr.size(); i++)
-        if (arr[i] > maxval)
-            maxval = arr[i];
-
+    {
+        maxval = arr[i];
+    }
     return maxval;
 }
 
-int sum_parallel(const vector<int> &arr) {
+int sum_parallel(vector<int> &arr) {
     int sum = 0;
 
     #pragma omp parallel for reduction(+ : sum)
     for (int i = 0; i < arr.size(); i++)
+    {
         sum += arr[i];
-
+    }
     return sum;
 }
 
-double average_parallel(const vector<int> &arr) {
+double average_parallel(vector<int> &arr) {
     return (double)sum_parallel(arr) / arr.size();
 }
 
 // -------- Main --------
 int main() {
-    int n = 100000;   // larger size for better comparison
+    int n = 10000;   // larger size for better comparison
     vector<int> arr(n);
 
     for (int i = 0; i < n; i++)
