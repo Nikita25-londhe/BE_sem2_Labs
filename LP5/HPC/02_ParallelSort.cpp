@@ -99,7 +99,7 @@ void mergeParallel(vector<int>&arr,int low,int high)
         mergeSequential(arr,low,mid);
         #pragma omp task shared(arr)
         mergeSequential(arr,mid+1,high);
-        #pragma task wait
+       #pragma omp taskwait
         merge(arr,low,mid,high);
     }
 }
