@@ -3,6 +3,16 @@
 #include<vector>
 #include<omp.h>
 using namespace std;
+void prinxtArray(vector<int>arr,int n)
+{
+    cout<<"\n";
+    for(int i=0;i<n;i++)
+    {
+        cout<<arr[i]<<" ";
+    }
+    cout<<"\n";
+}
+
 vector<int> generateArray(int n)
 {
     srand(time(NULL));
@@ -13,6 +23,7 @@ vector<int> generateArray(int n)
     }
     return arr;
 }
+
 void bubble(vector<int>&arr)
 {
     int n=arr.size();
@@ -28,20 +39,23 @@ void bubble(vector<int>&arr)
         }
     }
 }
+
 void bubbleParallel(vector<int>&arr)
 {
     int n=arr.size();
     for(int i=0;i<n;i++)
     {
-        for(int j=i+1;j<n;j++)
+        #pragma omp parallel for 
+        for(int j=i%2;j<n-1;j+=2)
         {
-            if(arr[j]<arr[i])
+            if(arr[j+1]<arr[j])
             {
-                swap(arr[i],arr[j]);
+                swap(arr[j],arr[j+1]);
             }
         }
     }
 }
+
 void merge(vector<int>&arr,int low,int mid,int high)
 {
     vector<int>temp(high-low+1,0);
@@ -64,20 +78,6 @@ void merge(vector<int>&arr,int low,int mid,int high)
     {
         arr[low+i]=temp[i];
     }
-
-}
-void mergeParallel(vector<int>&arr,int low,int high)
-{
-    if(low<high)
-    {
-        int mid=(high+low)/2;
-        #pragma omp task shared(arr)
-        mergeParallel(arr,low,mid);
-        #pragma omp task shared(arr)
-        mergeParallel(arr,mid+1,high);
-        #pragma omp taskwait
-        merge(arr,low,mid,high);
-    }
 }
 
 void mergeSequential(vector<int>&arr,int low,int high)
@@ -91,6 +91,21 @@ void mergeSequential(vector<int>&arr,int low,int high)
     }
 }
 
+void mergeParallel(vector<int>&arr,int low,int high)
+{
+    if(low<high)
+    {
+        int mid=(high+low)/2;
+        #pragma omp task shared(arr)
+        mergeSequential(arr,low,mid);
+        #pragma omp task shared(arr)
+        mergeSequential(arr,mid+1,high);
+        #pragma task wait
+        merge(arr,low,mid,high);
+    }
+}
+
+
 int main()
 {
     int n;
@@ -102,18 +117,13 @@ int main()
     bubble(arr1);
     double t2=omp_get_wtime();
     cout<<"\nTime required for sequential bubble sort : "<<t2-t1;
+    printArray(arr1,10);
 
     t1=omp_get_wtime();
     bubbleParallel(arr2);
     t2=omp_get_wtime();
     cout<<"\nTime required for parallel bubble sort : "<<t2-t1;
-
-    cout<<"\nPrinting first 10 elements of array after bubblesort:\n";
-    for(int i=0;i<10;i++) 
-    {
-        cout<<arr2[i]<<" ";
-    }
-    cout<<"\n";
+    printArray(arr2,10);
 
 
     vector<int>arr3=generateArray(n);
@@ -122,6 +132,7 @@ int main()
     mergeSequential(arr3,0,n-1);
     t2=omp_get_wtime();
     cout<<"\nTime required for Sequntial Merge sort : "<<t2-t1;
+    printArray(arr3,10);
 
     t1=omp_get_wtime();
     #pragma omp parallel
@@ -132,13 +143,8 @@ int main()
         }
     }
     t2=omp_get_wtime();
-    cout<<"\nTime required for parallel merge sort : "<<t2-t1;
-
-    cout<<"\nPrinting first 10 elements of array after merge sort:\n";
-    for(int i=0;i<10;i++)
-    {
-        cout<<arr3[i]<<" ";
-    }
+    cout<<"\nTime required for Parallel Merge sort : "<<t2-t1;
+    printArray(arr4,10);
 
 
     return 0;
