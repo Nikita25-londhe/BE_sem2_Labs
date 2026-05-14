@@ -29,12 +29,11 @@ void bubble(vector<int>&arr)
     int n=arr.size();
     for(int i=0;i<n;i++)
     {
-        #pragma omp parallel for
-        for(int j=i%2;j<n-1;j+=2)
+        for(int j=i+1;j<n;j++)
         {
-            if(arr[j+1]<arr[j])
+            if(arr[j]<arr[i])
             {
-                swap(arr[j+1],arr[j]);
+                swap(arr[j],arr[i]);
             }
         }
     }
