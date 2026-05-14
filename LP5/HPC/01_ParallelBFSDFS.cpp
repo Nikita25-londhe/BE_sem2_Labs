@@ -5,113 +5,157 @@
 using namespace std;
 class Graph
 {
-    int V;
+    int v;
     vector<int>*adj;
     public:
-    Graph(int V)
+    Graph(int v)
     {
-        this->V=V;
-        adj = new vector<int>[V];
+        this->v=v;
+        adj=new vector<int>[v];
     }
     void addEdge(int u,int v)
-    {
+    {   
         adj[u].push_back(v);
         adj[v].push_back(u);
     }
     void printGraph()
     {
-        for(int i = 0; i < V; i++)
+        for(int i=0;i<v;i++)
         {
-            for(auto v : adj[i])
+            cout<<"\n"<<i<<" -> ";
+            for(int j=0;j<adj[i].size();j++)
             {
-                cout << v << " ";
+                cout<<adj[i][j]<<" ";
             }
-            cout << endl;
         }
+        cout<<endl;
     }
-    void BFS_Parallel(int start)
+    void bfs(int v)
     {
-        vector<int>visited(V,0);
+        vector<int>visited(this->v,0);
         queue<int>q;
-        q.push(start);
-        visited[start]=1;
-        while(true)
+        q.push(v);
+        visited[v]=1;
+        while(!q.empty())
         {
-            int node,flag=0;
-            #pragma omp critical
+            int t=q.front();
+            cout<<"\n"<<t<<" is visited";
+            q.pop();
+            for(int i=0;i<adj[t].size();i++)
             {
-                if(!q.empty())
+                if(!visited[adj[t][i]])
                 {
-                    node=q.front();
-                    q.pop();
-                    cout<<"\n"<<node<<" is visited by "<<omp_get_thread_num();
-                }
-                else
-                {
-                   flag=1;
+                    q.push(adj[t][i]);
+                    visited[adj[t][i]]=1;
                 }
             }
-            if(flag)
-            {
-                break;
-            }
-            int neighbour;
+        }
+
+    }
+    void bfsParallel(int v)
+    {
+        vector<int>visited(this->v,0);
+        queue<int>q;
+        q.push(v);
+        visited[v]=1;
+        while(!q.empty())
+        {
+            int t=q.front();
+            cout<<"\n"<<t<<" is visited";
+            q.pop();
             #pragma omp parallel for 
-            for(int i=0;i<adj[node].size();i++)
+            for(int i=0;i<adj[t].size();i++)
             {
-                neighbour=adj[node][i];
                 #pragma omp critical
                 {
-                    if(!visited[neighbour])
+                    if(!visited[adj[t][i]])
                     {
-                        q.push(neighbour);
-                        visited[neighbour]=1;
-                    }
+                        q.push(adj[t][i]);
+                        visited[adj[t][i]]=1;  
+                    } 
                 }
+            
             }
         }
     }
-    void DFSUtil(int v,vector<int>&visited)
+    void dfsUtil(int v,vector<int>&visited)
     {
-        if(visited[v])
-        {
-            return;
-        }
-        #pragma omp critical
-        {
-            cout<<"\n"<<v<<" is visited by "<<omp_get_thread_num();
-             visited[v]=1;
-        }
-        int neighbour;
-        #pragma omp parallel for 
+        visited[v]=1;
+        cout<<"\n"<<v<<" is visited";
         for(int i=0;i<adj[v].size();i++)
         {
-            neighbour=adj[v][i];
-            if(!visited[neighbour])
+            if(!visited[adj[v][i]])
             {
-                DFSUtil(neighbour,visited);
+                dfsUtil(adj[v][i],visited);
             }
         }
     }
-    void DFS_Parallel(int start)
+
+    void dfsUtilParallel(int v,vector<int>&visited)
     {
-        vector<int>visited(V,0);
-        DFSUtil(start,visited);
+        #pragma omp critical
+        {
+            visited[v]=1;
+            cout<<"\n"<<v<<" is visited";
+        }
+        for(int i=0;i<adj[v].size();i++)
+        {
+            if(!visited[adj[v][i]])
+            {
+                #pragma omp task
+                dfsUtilParallel(adj[v][i],visited);
+            }
+        }
+    }
+    void dfsSequential(int v)
+    {
+        vector<int>visited(this->v,0);
+        dfsUtil(v,visited);
+
+    }
+    void dfsParallel(int v)
+    {
+        vector<int>visited(this->v,0);
+        dfsUtilParallel(v,visited);
     }
 };
 int main()
 {
-    Graph g(5);
+    int n;
+    cout<<"\nEnter no of vertices:";
+    cin>>n;
+    Graph g(n);
     g.addEdge(0,1);
-    g.addEdge(0,2);
+    g.addEdge(1,2);
+    g.addEdge(2,3);
     g.addEdge(1,3);
-    g.addEdge(2,4);
-    g.addEdge(3,4);
-     g.addEdge(1,2);
     g.printGraph();
-    cout<<"\nBFS Parallel:";
-    g.BFS_Parallel(0);
-    cout<<"\nDFS Parallel : ";
-    g.DFS_Parallel(0);
+    double t1,t2;
+    t1=omp_get_wtime();
+    g.bfs(0);
+    t2=omp_get_wtime();
+    cout<<"\nTime taken by sequential BFS is "<<(t2-t1)<<" seconds";
+
+    t1=omp_get_wtime();
+    g.bfsParallel(0);
+    t2=omp_get_wtime();
+    cout<<"\nTime taken by Parallel BFS is "<<(t2-t1)<<" seconds";
+    
+    t1=omp_get_wtime();
+    g.dfsSequential(0);
+    t2=omp_get_wtime();
+    cout<<"\nTime taken by sequential DFS is "<<(t2-t1)<<" seconds";
+
+     t1=omp_get_wtime();
+     #pragma omp parallel
+     {
+        #pragma omp single
+        {
+            g.dfsParallel(0);
+        }
+     }
+    t2=omp_get_wtime();
+    cout<<"\nTime taken by Parallel DFS is "<<(t2-t1)<<" seconds";
+
     return 0;
 }
